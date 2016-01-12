@@ -21,7 +21,7 @@ describe "Database schema parser" do
     begin
       DB.schema(:items, :reload=>true).must_be_kind_of(Array)
       DB.schema(:items, :reload=>true).first.first.must_equal :number
-    ensure 
+    ensure
       DB.drop_table(:items)
     end
   end
@@ -39,7 +39,7 @@ describe "Database schema parser" do
     begin
       DB.schema(ds, :reload=>true).must_be_kind_of(Array)
       DB.schema(ds, :reload=>true).first.first.must_equal :number
-    ensure 
+    ensure
       DB.identifier_output_method = :reverse
       DB.identifier_input_method = :reverse
       DB.drop_table(:items)
@@ -82,7 +82,7 @@ describe "Database schema parser" do
   it "should parse primary keys from the schema properly" do
     DB.create_table!(:items){Integer :number}
     DB.schema(:items).collect{|k,v| k if v[:primary_key]}.compact.must_equal []
-    DB.create_table!(:items){primary_key :number}
+    DB.create_table!(:items){primary_key :number; String :value}
     DB.schema(:items).collect{|k,v| k if v[:primary_key]}.compact.must_equal [:number]
     DB.create_table!(:items){Integer :number1; Integer :number2; primary_key [:number1, :number2]}
     DB.schema(:items).collect{|k,v| k if v[:primary_key]}.compact.must_equal [:number1, :number2]
@@ -91,7 +91,7 @@ describe "Database schema parser" do
   cspecify "should parse autoincrementing primary keys from the schema properly", :sqlite, :oracle do
     DB.create_table!(:items){Integer :number}
     DB.schema(:items).collect{|k,v| k if v[:primary_key] && v[:auto_increment]}.compact.must_equal []
-    DB.create_table!(:items){primary_key :number}
+    DB.create_table!(:items){primary_key :number; String :value}
     DB.schema(:items).collect{|k,v| k if v[:primary_key] && v[:auto_increment]}.compact.must_equal [:number]
     DB.create_table!(:items){Integer :number, :primary_key=>true}
     DB.schema(:items).collect{|k,v| k if v[:primary_key] && v[:auto_increment]}.compact.must_equal []
@@ -203,7 +203,7 @@ describe "Database index parsing" do
     DB.drop_index(:items, [:n, :a])
     f.call.must_equal({})
   end
-  
+
   it "should not include a primary key index" do
     DB.create_table!(:items){primary_key :n}
     DB.indexes(:items).must_equal({})
@@ -297,7 +297,7 @@ describe "Database schema modifiers" do
     @ds.insert([10])
     @ds.columns!.must_equal [:number]
   end
-  
+
   it "should create tables from select statements correctly" do
     @db.create_table!(:items){Integer :number}
     @ds.insert([10])
@@ -306,7 +306,7 @@ describe "Database schema modifiers" do
     @db[:items2].columns.must_equal [:number]
     @db[:items2].all.must_equal [{:number=>10}]
   end
-  
+
   it "should not raise an error if table doesn't exist when using drop_table :if_exists" do
     @db.drop_table(:items, :if_exists=>true)
   end if DB.supports_drop_table_if_exists?
@@ -376,13 +376,13 @@ describe "Database schema modifiers" do
       @db[:items_view].map(:number).must_equal [2]
     end
   end
-  
+
   it "should handle create table in a rolled back transaction" do
     @db.drop_table?(:items)
     @db.transaction(:rollback=>:always){@db.create_table(:items){Integer :number}}
     @db.table_exists?(:items).must_equal false
   end if DB.supports_transactional_ddl?
-  
+
   describe "join tables" do
     after do
       @db.drop_join_table(:cat_id=>:cats, :dog_id=>:dogs) if @db.table_exists?(:cats_dogs)
@@ -391,9 +391,9 @@ describe "Database schema modifiers" do
     end
 
     it "should create join tables correctly" do
-      @db.create_table!(:cats){primary_key :id}
-      @db.create_table!(:dogs){primary_key :id}
-      @db.create_join_table(:cat_id=>:cats, :dog_id=>:dogs)
+      @db.create_table!(:cats){primary_key :id; String :value}
+      @db.create_table!(:dogs){primary_key :id; String :value}
+      @db.create_join_table({ :cat_id=>:cats, :dog_id=>:dogs }, no_index: !@db.supports_index_parsing?)
       @db.table_exists?(:cats_dogs).must_equal true
     end
   end
@@ -411,7 +411,7 @@ describe "Database schema modifiers" do
     @db[:items].columns.must_equal [:b]
   end
 
-  it "should have create_table? work correctly with indexes" do
+  cspecify "should have create_table? work correctly with indexes", :vertica do
     @db.create_table!(:items){String :a, :index=>true}
     @db.create_table?(:items){String :b, :index=>true}
     @db[:items].columns.must_equal [:a]
@@ -430,8 +430,8 @@ describe "Database schema modifiers" do
     @ds.insert([10])
     @ds.columns!.must_equal [:number]
   end
-  
-  it "should allow creating indexes with tables" do
+
+  cspecify "should allow creating indexes with tables", :vertica do
     @db.create_table!(:items){Integer :number; index :number}
     @db.table_exists?(:items).must_equal true
     @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:number]
@@ -439,7 +439,7 @@ describe "Database schema modifiers" do
     @ds.columns!.must_equal [:number]
   end
 
-  it "should allow creating partial indexes with tables" do
+  cspecify "should allow creating partial indexes with tables", :vertica do
     @db.create_table!(:items){Integer :number; index :number, :where=>proc{number > 10}}
     @db.table_exists?(:items).must_equal true
     @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:number]
@@ -455,14 +455,14 @@ describe "Database schema modifiers" do
   end
 
   it "should be able to specify constraint names for column constraints" do
-    @db.create_table!(:items2){primary_key :id, :primary_key_constraint_name=>:foo_pk}
+    @db.create_table!(:items2){primary_key :id, :primary_key_constraint_name=>:foo_pk; String :value}
     @db.create_table!(:items){foreign_key :id, :items2, :unique=>true, :foreign_key_constraint_name => :foo_fk, :unique_constraint_name => :foo_uk, :null=>false}
     @db.alter_table(:items){drop_constraint :foo_fk, :type=>:foreign_key; drop_constraint :foo_uk, :type=>:unique}
     @db.alter_table(:items2){drop_constraint :foo_pk, :type=>:primary_key}
   end
 
-  it "should handle foreign keys correctly when creating tables" do
-    @db.create_table!(:items) do 
+  cspecify "should handle foreign keys correctly when creating tables", :vertica do
+    @db.create_table!(:items) do
       primary_key :id
       foreign_key :item_id, :items
       unique [:item_id, :id]
@@ -482,7 +482,7 @@ describe "Database schema modifiers" do
     @ds.all.must_equal [{:number=>10, :name=>nil}]
   end
 
-  cspecify "should add primary key columns to tables correctly", :derby do
+  cspecify "should add primary key columns to tables correctly", :derby, :vertica do
     @db.create_table!(:items){Integer :number}
     @ds.insert(:number=>10)
     @db.alter_table(:items){add_primary_key :id}
@@ -500,8 +500,8 @@ describe "Database schema modifiers" do
     @ds.insert(10)
   end
 
-  it "should add foreign key columns to tables correctly" do
-    @db.create_table!(:items){primary_key :id}
+  cspecify "should add foreign key columns to tables correctly", :vertica do
+    @db.create_table!(:items){primary_key :id; String :value}
     @ds.insert
     i = @ds.get(:id)
     @db.alter_table(:items){add_foreign_key :item_id, :items}
@@ -587,7 +587,7 @@ describe "Database schema modifiers" do
     @ds.all.must_equal [{:id=>10}, {:id=>20}]
   end
 
-  cspecify "should set column types correctly", [:jdbc, :db2], [:db2], :oracle do
+  cspecify "should set column types correctly", [:jdbc, :db2], [:db2], :oracle, :vertica do
     @db.create_table!(:items){Integer :id}
     @ds.insert(:id=>10)
     @db.alter_table(:items){set_column_type :id, String}
@@ -597,7 +597,7 @@ describe "Database schema modifiers" do
     @ds.order(:id).all.must_equal [{:id=>"10"}, {:id=>"20"}]
   end
 
-  cspecify "should set column types without modifying NULL/NOT NULL", [:jdbc, :db2], [:db2], :oracle, :derby do
+  cspecify "should set column types without modifying NULL/NOT NULL", [:jdbc, :db2], [:db2], :oracle, :derby, :vertica do
     @db.create_table!(:items){Integer :id, :null=>false, :default=>2}
     proc{@ds.insert(:id=>nil)}.must_raise(Sequel::NotNullConstraintViolation, Sequel::ConstraintViolation, Sequel::DatabaseError)
     @db.alter_table(:items){set_column_type :id, String}
@@ -610,7 +610,7 @@ describe "Database schema modifiers" do
     @ds.map(:id).must_equal [nil, nil]
   end
 
-  cspecify "should set column types without modifying defaults", [:jdbc, :db2], [:db2], :oracle, :derby do
+  cspecify "should set column types without modifying defaults", [:jdbc, :db2], [:db2], :oracle, :derby, :vertica do
     @db.create_table!(:items){Integer :id, :default=>0}
     @ds.insert
     @ds.map(:id).must_equal [0]
@@ -626,7 +626,7 @@ describe "Database schema modifiers" do
     @ds.map(:id).must_equal %w'a a'
   end
 
-  it "should add unnamed unique constraints and foreign key table constraints correctly" do
+  cspecify "should add unnamed unique constraints and foreign key table constraints correctly", :vertica do
     @db.create_table!(:items, :engine=>:InnoDB){Integer :id, :null => false; Integer :item_id, :null => false}
     @db.alter_table(:items) do
       add_unique_constraint [:item_id, :id]
@@ -639,7 +639,7 @@ describe "Database schema modifiers" do
     proc{@ds.insert(1, 2)}.must_raise Sequel::ForeignKeyConstraintViolation, Sequel::ConstraintViolation, Sequel::DatabaseError
   end
 
-  it "should add named unique constraints and foreign key table constraints correctly" do
+  cspecify "should add named unique constraints and foreign key table constraints correctly", :vertica do
     @db.create_table!(:items, :engine=>:InnoDB){Integer :id, :null=>false; Integer :item_id, :null=>false}
     @db.alter_table(:items) do
       add_unique_constraint [:item_id, :id], :name=>:unique_iii
@@ -652,7 +652,7 @@ describe "Database schema modifiers" do
     proc{@ds.insert(1, 2)}.must_raise Sequel::ForeignKeyConstraintViolation, Sequel::ConstraintViolation, Sequel::DatabaseError
   end
 
-  it "should drop unique constraints and foreign key table constraints correctly" do
+  cspecify "should drop unique constraints and foreign key table constraints correctly", :vertica do
     @db.create_table!(:items) do
       Integer :id
       Integer :item_id
@@ -673,20 +673,22 @@ describe "Database schema modifiers" do
     @db.create_table!(:items) do
       primary_key :id
       Integer :i
+      String :value
     end
     @ds.insert(:i=>10)
     @db.drop_column(:items, :i)
-    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id]
+    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id, :value]
   end
 
   it "should remove columns with defaults from tables correctly" do
     @db.create_table!(:items) do
       primary_key :id
       Integer :i, :default=>20
+      String :value
     end
     @ds.insert(:i=>10)
     @db.drop_column(:items, :i)
-    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id]
+    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id, :value]
   end
 
   it "should remove foreign key columns from tables correctly" do
@@ -705,17 +707,18 @@ describe "Database schema modifiers" do
       primary_key :id
       String :name
       Integer :number
+      String :value
     end
     @ds.insert(:number=>10)
-    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id, :name, :number]
+    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id, :name, :number, :value]
     @db.alter_table(:items) do
       drop_column :name
       drop_column :number
     end
-    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id]
+    @db.schema(:items, :reload=>true).map{|x| x.first}.must_equal [:id, :value]
   end
 
-  cspecify "should work correctly with many operations in a single alter_table call", [:jdbc, :db2], [:db2] do
+  cspecify "should work correctly with many operations in a single alter_table call", [:jdbc, :db2], [:db2], :vertica do
     @db.create_table!(:items) do
       primary_key :id
       String :name2

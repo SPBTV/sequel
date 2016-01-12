@@ -568,7 +568,7 @@ describe "Touch plugin" do
     @album.updated_at.to_i.must_be_close_to Time.now.to_i, 2
   end
   
-  cspecify "should update the timestamp column for many_to_one associated records when the record is updated or destroyed", [:do, :sqlite], [:jdbc, :sqlite], [:swift] do
+  cspecify "should update the timestamp column for many_to_one associated records when the record is updated or destroyed", [:do, :sqlite], [:jdbc, :sqlite], [:swift], :vertica do
     Album.many_to_one :artist
     Album.plugin :touch, :associations=>:artist
     @artist.updated_at.must_equal nil
@@ -588,7 +588,7 @@ describe "Touch plugin" do
     end
   end
 
-  cspecify "should update the timestamp column for one_to_many associated records when the record is updated", [:do, :sqlite], [:jdbc, :sqlite], [:swift] do
+  cspecify "should update the timestamp column for one_to_many associated records when the record is updated", [:do, :sqlite], [:jdbc, :sqlite], [:swift], :vertica do
     Artist.one_to_many :albums
     Artist.plugin :touch, :associations=>:albums
     @album.updated_at.must_equal nil
@@ -601,7 +601,7 @@ describe "Touch plugin" do
     end
   end
 
-  cspecify "should update the timestamp column for many_to_many associated records when the record is updated", [:do, :sqlite], [:jdbc, :sqlite], [:swift] do
+  cspecify "should update the timestamp column for many_to_many associated records when the record is updated", [:do, :sqlite], [:jdbc, :sqlite], [:swift], :vertica do
     Artist.many_to_many :albums
     Artist.plugin :touch, :associations=>:albums
     @artist.add_album(@album)
@@ -1910,6 +1910,7 @@ describe "Caching plugins" do
     @db.drop_table?(:albums, :artists)
     @db.create_table(:artists) do
       primary_key :id
+      String :value
     end
     @db.create_table(:albums) do
       primary_key :id
@@ -2060,7 +2061,7 @@ describe "Sequel::Plugins::ConstraintValidations" do
     end
   end
 
-  describe "via create_table" do
+  cspecify "via create_table", :vertica do
     before(:all) do
       @table_block = proc do
         regexp = @regexp
@@ -2103,7 +2104,7 @@ describe "Sequel::Plugins::ConstraintValidations" do
     end
   end
 
-  describe "via alter_table" do
+  cspecify "via alter_table", :vertica do
     before(:all) do
       @table_block = proc do
         regexp = @regexp
@@ -2197,7 +2198,7 @@ describe "date_arithmetic extension" do
   end
 
   if asd
-    it "be able to use Sequel.date_add to add ActiveSupport::Duration objects to dates and datetimes" do
+    cspecify "be able to use Sequel.date_add to add ActiveSupport::Duration objects to dates and datetimes", :vertica do
       @check.call(:date_add, @date, @d0, @dt)
       @check.call(:date_add, @date, @d1, @a1)
       @check.call(:date_add, @date, @d2, @a2)
@@ -2207,7 +2208,7 @@ describe "date_arithmetic extension" do
       @check.call(:date_add, @dt, @d2, @a2)
     end
 
-    it "be able to use Sequel.date_sub to subtract ActiveSupport::Duration objects from dates and datetimes" do
+    cspecify "be able to use Sequel.date_sub to subtract ActiveSupport::Duration objects from dates and datetimes", :vertica do
       @check.call(:date_sub, @date, @d0, @dt)
       @check.call(:date_sub, @date, @d1, @s1)
       @check.call(:date_sub, @date, @d2, @s2)
@@ -2218,7 +2219,7 @@ describe "date_arithmetic extension" do
     end
   end
 
-  it "be able to use Sequel.date_add to add interval hashes to dates and datetimes" do
+  cspecify "be able to use Sequel.date_add to add interval hashes to dates and datetimes", :vertica do
     @check.call(:date_add, @date, @h0, @dt)
     @check.call(:date_add, @date, @h1, @a1)
     @check.call(:date_add, @date, @h2, @a2)
@@ -2228,7 +2229,7 @@ describe "date_arithmetic extension" do
     @check.call(:date_add, @dt, @h2, @a2)
   end
 
-  it "be able to use Sequel.date_sub to subtract interval hashes from dates and datetimes" do
+  cspecify "be able to use Sequel.date_sub to subtract interval hashes from dates and datetimes", :vertica do
     @check.call(:date_sub, @date, @h0, @dt)
     @check.call(:date_sub, @date, @h1, @s1)
     @check.call(:date_sub, @date, @h2, @s2)

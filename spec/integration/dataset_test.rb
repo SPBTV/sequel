@@ -33,7 +33,7 @@ describe "Simple Dataset operations" do
     @ds.order(:number).all.must_equal [{:id => 1, :number=>20}, {:id => 2, :number=>30}]   
   end 
 
-  cspecify "should insert with a primary key specified", :db2, :mssql do
+  cspecify "should insert with a primary key specified", :db2, :mssql, :vertica do
     @ds.insert(:id=>100, :number=>20)
     @ds.count.must_equal 2
     @ds.order(:id).all.must_equal [{:id=>1, :number=>10}, {:id=>100, :number=>20}]
@@ -551,7 +551,7 @@ describe "Simple Dataset operations in transactions" do
     DB.drop_table?(:items)
   end
 
-  cspecify "should insert correctly with a primary key specified inside a transaction", :db2, :mssql do
+  cspecify "should insert correctly with a primary key specified inside a transaction", :db2, :mssql, :vertica do
     DB.transaction do
       @ds.insert(:id=>100, :number=>20)
       @ds.count.must_equal 1
@@ -869,7 +869,7 @@ describe Sequel::SQL::Constants do
     d.to_s.must_equal Date.today.to_s
   end
 
-  cspecify "should have working CURRENT_TIME", [:jdbc, :sqlite], [:mysql2] do
+  cspecify "should have working CURRENT_TIME", [:jdbc, :sqlite], [:mysql2], :vertica do
     @db.create_table!(:constants){Time :t, :only_time=>true}
     @ds.insert(:t=>Sequel::CURRENT_TIME)
     (Time.now - @c[@ds.get(:t)]).must_be_close_to 0, 60

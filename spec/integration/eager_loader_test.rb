@@ -68,7 +68,7 @@ describe "Eagerly loading a tree structure" do
     Node.insert(:parent_id=>6)
   end
   after(:all) do
-    DB.drop_table :nodes
+    DB.drop_table :nodes, :cascade=>true
     Object.send(:remove_const, :Node)
   end
 
@@ -131,6 +131,7 @@ describe "Association Extensions" do
     DB.instance_variable_set(:@schemas, {})
     DB.create_table!(:authors) do
       primary_key :id
+      String :value
     end
     class ::Author < Sequel::Model
       one_to_many :authorships, :extend=>FindOrCreate
@@ -174,6 +175,7 @@ describe "has_many :through has_many and has_one :through belongs_to" do
     DB.instance_variable_set(:@schemas, {})
     DB.create_table!(:firms) do
       primary_key :id
+      String :value
     end
     class ::Firm < Sequel::Model
       one_to_many :clients
@@ -358,6 +360,7 @@ describe "Polymorphic Associations" do
   
     DB.create_table!(:posts) do
       primary_key :id
+      String :value
     end
     class ::Post < Sequel::Model
       one_to_many :assets, :key=>:attachable_id, :reciprocal=>:attachable, :conditions=>{:attachable_type=>'Post'},
@@ -368,6 +371,7 @@ describe "Polymorphic Associations" do
   
     DB.create_table!(:notes) do
       primary_key :id
+      String :value
     end
     class ::Note < Sequel::Model
       one_to_many :assets, :key=>:attachable_id, :reciprocal=>:attachable, :conditions=>{:attachable_type=>'Note'},     
@@ -637,6 +641,7 @@ describe "one to one associations" do
   before(:all) do
     DB.create_table!(:books) do
       primary_key :id
+      String :value
     end
     class ::Book < Sequel::Model
       one_to_one :first_page, :class=>:Page, :conditions=>{:page_number=>1}, :reciprocal=>nil
