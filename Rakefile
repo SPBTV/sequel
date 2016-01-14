@@ -127,7 +127,7 @@ spec_task.call("Run bin/sequel specs", :spec_bin, './spec/bin_spec.rb')
 spec_task.call("Run core extensions specs", :spec_core_ext, './spec/core_extensions_spec.rb')
 spec_task.call("Run integration tests", :spec_integration, './spec/integration/*_test.rb')
 
-%w'postgres sqlite mysql informix oracle firebird mssql db2 sqlanywhere'.each do |adapter|
+%w'postgres sqlite mysql informix oracle firebird mssql db2 sqlanywhere vertica'.each do |adapter|
   spec_task.call("Run #{adapter} tests", :"spec_#{adapter}", "./spec/adapters/#{adapter}_spec.rb ./spec/integration/*_test.rb")
 end
 

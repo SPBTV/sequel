@@ -180,6 +180,13 @@ module Sequel
         super
       end
 
+      def create_table_sql(name, generator, options)
+        sql = super
+        sql << " SEGMENTED BY #{options[:segmented_by]}" if options[:segmented_by]
+        sql << " PARTITION BY #{options[:partition_by]}" if options[:partition_by]
+        sql
+      end
+
     end
 
     class Connection
