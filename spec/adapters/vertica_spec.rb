@@ -33,3 +33,31 @@ describe 'Vertica', '#create_table' do
     end
   end
 end
+
+describe 'Vertica', 'copy' do
+  before(:all) do
+    @db = DB
+    @db.create_table(:items) {
+      column :value1, :varchar
+      column :value2, :integer
+    }
+    @ds = @db[:items]
+  end
+
+  before do
+    @ds.delete
+  end
+
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it 'COPY FROM STDIN' do
+    @db.copy(%{COPY items (value1, value2) FROM STDIN DELIMITER ','}) do |stdin|
+      stdin << "100500,100600\n"
+    end
+
+    @ds.count.must_equal(1)
+    @ds.first.must_equal({ value1: '100500', value2: 100600 })
+  end
+end

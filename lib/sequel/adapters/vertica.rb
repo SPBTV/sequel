@@ -36,6 +36,16 @@ module Sequel
         raise_error(e)
       end
 
+      def copy(sql, opts = {}, &block)
+        synchronize(opts[:server]) do |conn|
+          raise DatabaseConnectionError, 'Connection to server was closed.' if conn.closed?
+
+          log_yield(sql, opts[:arguments]) { conn.copy(sql, &block) }
+        end
+      rescue ::Vertica::Error => e
+        raise_error(e)
+      end
+
       def execute_insert(sql, opts = {}, &block)
         execute(sql, opts, &block)
 
@@ -201,6 +211,10 @@ module Sequel
 
       def execute(sql)
         @connection.query(sql)
+      end
+
+      def copy(sql, &block)
+        @connection.copy(sql, &block)
       end
 
       def close
