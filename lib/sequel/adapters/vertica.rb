@@ -197,6 +197,14 @@ module Sequel
         sql
       end
 
+      def schema_column_type(db_type)
+        case db_type
+          when /\Atimestamptz\z/io
+            :datetime
+          else
+            super
+        end
+      end
     end
 
     class Connection

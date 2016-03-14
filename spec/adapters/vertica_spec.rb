@@ -61,3 +61,22 @@ describe 'Vertica', 'copy' do
     @ds.first.must_equal({ value1: '100500', value2: 100600 })
   end
 end
+
+describe 'Vertica', 'timestamptz db type' do
+  before(:all) do
+    @db = DB
+    @db.create_table(:items) {
+      column :value1, :timestamptz
+    }
+  end
+
+  after do
+    @db.drop_table?(:items)
+  end
+
+  it 'recognize timestamptz db type in scheme' do
+    @db.schema(:items).each do |(_, column_descriptor)|
+      column_descriptor[:type].must_equal(:datetime)
+    end
+  end
+end
